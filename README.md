@@ -1,191 +1,148 @@
-# RTCM TCP Debugger
+# Base RTCM3 Tester
 
-Jednoduchá desktopová Python aplikace pro **debug RTCM3 streamu přes TCP**.
+Simple Python GUI tool for debugging RTCM3 streams over TCP.
 
-Primárně vznikla jako lehký nástroj pro rychlou kontrolu, zda z TCP streamu opravdu teče platný RTCM3 obsah, jaké typy zpráv přicházejí, kolik jich dorazilo a jak vypadají poslední validní dekódované hodnoty.
+Repository: https://github.com/doupov/basertcm3_tester
 
-Aplikace je vhodná například pro:
-- kontrolu RTCM3 streamu z lokálního TCP serveru,
-- debug NTRIP / RTK / base station pipeline,
-- ověření, že stream skutečně obsahuje očekávané zprávy jako `1005`, `1006`, `1033`, `1077`, `1087`, `1097`, apod.,
-- odhalení situací, kdy stream není RTCM3 nebo obsahuje poškozené rámce.
+---
 
-## Co aplikace umí
+## 🚀 Overview
 
-- připojení na **TCP stream** pomocí `IP + Port`,
-- zobrazení počtu přijatých zpráv podle typu RTCM,
-- zobrazení poslední validní dekódované zprávy,
-- detekci **invalidních RTCM rámců**,
-- detekci balastu / dat, která **nejsou RTCM3**,
-- výpočet **validity %**,
-- **watchdog** nad živostí streamu,
-- **MSM detection**,
-- lepší výpis zpráv `1005` / `1006`, včetně přepočtu ECEF souřadnic na zeměpisnou polohu base stanice.
+This application connects to a TCP RTCM3 stream (e.g. from RTKLIB, NTRIP client, or GNSS base station) and provides real-time diagnostics:
 
-## Health / sanity informace
+- Detects and counts RTCM message types
+- Validates RTCM3 frames (CRC check via `pyrtcm`)
+- Shows stream health and data quality
+- Decodes base station position (1005/1006)
+- Detects MSM correction messages
+- Provides watchdog for stream activity
 
-Aplikace navíc zobrazuje praktické souhrny pro rychlý debug:
+Designed as a lightweight debugging tool for GNSS / RTK workflows.
 
+---
+
+## 🧩 Features
+
+### 📡 Connection
+- TCP client (IP + Port)
+- Connect / Disconnect button
+
+### 📊 Message Statistics
+- Message count per RTCM type
+- Last received timestamp
+- Total bytes received
+
+### ✅ RTCM Validation
+- Valid frames
+- Invalid frames (CRC errors)
+- Validity percentage
+
+### 🛰 Base Station (1005 / 1006)
+- Station ID
+- ECEF coordinates (X, Y, Z)
+- Converted to:
+  - Latitude
+  - Longitude
+  - Ellipsoidal height
+
+### 📡 MSM Detection
+- Detects MSM4–MSM7 messages (1074–1127)
+- Shows:
+  - Last MSM type
+  - Station ID
+  - Number of satellites
+  - Signals
+  - Cells
+
+### ⏱ Watchdog
 - `STREAM OK`
 - `WAITING FOR DATA`
 - `STREAM DEAD`
-- stav přítomnosti **base position** (`1005/1006`)
-- stav přítomnosti **MSM corrections**
-- poslední známou base pozici
-- poslední MSM typ a základní metadata
 
-To je užitečné například při debugování, proč rover nebo NTRIP služba hlásí problém typu:
-- stream není RTCM3,
-- chybí base position,
-- chybí correction zprávy,
-- data tečou, ale dlouho nepřišla validní RTCM zpráva.
+---
 
-## Screenshot / typické použití
-
-Typický workflow:
-
-1. Spustíš lokální TCP server nebo jiný zdroj RTCM3 streamu.
-2. Do aplikace zadáš IP a port.
-3. Klikneš na `Connect`.
-4. Sleduješ:
-   - jaké zprávy chodí,
-   - zda roste počet validních rámců,
-   - zda nejsou invalidní rámce,
-   - zda aplikace vidí `1005/1006` a MSM zprávy.
-
-## Závislosti
-
-Aplikace používá:
+## 📦 Requirements
 
 - Python 3.10+
 - `pyrtcm`
-- `tkinter`
+- `pynmeagps`
+- `tkinter` (GUI)
 
-### Python balíčky
-
-Instalace přes `requirements_rtcm_debugger.txt`:
-
+Install dependencies:
 ```bash
 pip install -r requirements_rtcm_debugger.txt
 ```
 
-Obsah requirements:
+---
 
-```txt
-pyrtcm>=1.1.9
-```
+## 🍏 macOS Note
 
-Poznámka: `pynmeagps` se doinstaluje jako závislost `pyrtcm`.
-
-## macOS poznámka
-
-Na macOS je potřeba, aby Python měl podporu `tkinter`.
-
-Pokud aplikace padá na chybu typu:
+If you are using Homebrew Python and get:
 
 ```bash
 ModuleNotFoundError: No module named '_tkinter'
 ```
 
-pomůže doinstalovat Tk podporu, například:
+Install Tk support:
 
 ```bash
 brew install python-tk
 ```
 
-V tvém prostředí tohle problém vyřešilo.
+---
 
-## Spuštění
-
-### 1. Klon repozitáře
-
-```bash
-git clone https://github.com/TVUJ-UCET/TVUJ-REPO.git
-cd TVUJ-REPO
-```
-
-### 2. Virtuální prostředí
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-```
-
-### 3. Instalace závislostí
-
-```bash
-pip install -r requirements_rtcm_debugger.txt
-```
-
-### 4. Spuštění aplikace
+## ▶️ Run
 
 ```bash
 python3 rtcm_debugger.py
 ```
 
-## Jak aplikace funguje
+Then:
+1. Enter IP and Port of your RTCM3 stream
+2. Click **Connect**
 
-Aplikace čte TCP stream jako binární data a hledá RTCM3 rámce podle preambule `0xD3`.
+---
 
-Následně:
-- vyčte délku rámce,
-- zkusí rámec dekódovat přes `pyrtcm`,
-- při úspěchu zvýší počitadlo typu zprávy,
-- při chybě zvýší počitadlo invalidních rámců,
-- při balastu mimo RTCM rámce zvýší počitadlo non-RTCM bytů.
+## 🔍 Typical Use Cases
 
-## Zprávy 1005 / 1006
+- Debugging RTKLIB `str2str` streams
+- Verifying RTCM output from GNSS base stations (e.g. UM980 / UM982)
+- Checking NTRIP streams before sending to services (Onocoy, etc.)
+- Diagnosing corrupted or mixed TCP streams
 
-Pokud dorazí `1005` nebo `1006`, aplikace zobrazuje:
-- station ID,
-- ECEF souřadnice `X / Y / Z`,
-- přepočtenou `Latitude / Longitude / Height`.
+---
 
-To je užitečné pro rychlou kontrolu, že base opravdu vysílá správnou pozici.
+## ⚠️ Notes
 
-## MSM detection
+- CRC validation is handled by `pyrtcm`
+- Logical correctness of data (e.g. wrong coordinates) is not guaranteed
+- Some streams may contain non-RTCM data (handled as "garbage bytes")
 
-Aplikace hlídá MSM zprávy v rozsahu typicky:
-- `1074–1077`
-- `1084–1087`
-- `1094–1097`
-- `1104–1107`
-- `1114–1117`
-- `1124–1127`
+---
 
-Zobrazuje:
-- poslední MSM typ,
-- station ID,
-- počet satelitů,
-- počet signálů,
-- počet cell entries,
-- stáří poslední MSM zprávy.
+## 🛠 Future Improvements
 
-## Omezení
+- Traffic-light health indicator (OK / WARN / FAIL)
+- Message rate graphs
+- Export to `.rtcm3` file
+- NTRIP client support
+- Web-based UI version
 
-- aplikace zatím podporuje pouze **TCP vstup**, ne sériový port,
-- je zaměřená na **rychlý debug**, ne na kompletní analýzu všech RTCM polí,
-- logická validita obsahu není totéž co CRC validita rámce — rámec může být syntakticky validní, ale stále obsahovat nesmyslná data.
+---
 
-## Nápady na další rozvoj
+## 📜 License
 
-Možná budoucí vylepšení:
-- logování do souboru,
-- export raw RTCM streamu,
-- zvýraznění důležitých typů zpráv (`1005`, `1033`, MSM),
-- barevný `OK / WARN / FAIL` panel,
-- build do `.app` pro macOS,
-- podpora NTRIP klient režimu,
-- podpora sériového portu.
+MIT (or your choice)
 
-## Licence
+---
 
-Doplň si podle sebe, například:
+## ✍️ Author
 
-```txt
-MIT License
-```
+Martin Fox  
+https://github.com/doupov
 
-## Poděkování
+---
 
-Dekódování RTCM zpráv zajišťuje knihovna `pyrtcm`.
+## ⭐ If you find this useful
+
+Give it a star ⭐ and help others working with GNSS / RTK!
