@@ -132,7 +132,7 @@ Then:
 
 ## 📜 License
 
-MIT (or your choice)
+Apache 2
 
 ---
 
